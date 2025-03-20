@@ -1,8 +1,8 @@
 use colored::Colorize;
+use serde_json;
 use std::fs;
 use std::path::Path;
 use std::process::Command;
-
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 2 {
@@ -21,7 +21,6 @@ fn main() {
     }
 }
 
-// Run a terminal command with colored debug output
 fn run_command(cmd: &str, args: &[&str]) {
     println!(
         "{}",
@@ -44,13 +43,11 @@ fn run_command(cmd: &str, args: &[&str]) {
             "{}",
             format!("Error: {}", String::from_utf8_lossy(&output.stderr)).red()
         );
-        std::process::exit(1); // Exit on failure
+        std::process::exit(1);
     }
 }
 
-// Bootstrap Tauri v2 with iOS for an existing Next.js app
 fn bootstrap_tauri_v2_ios() {
-    // Check for package.json
     if !Path::new("package.json").exists() {
         eprintln!(
             "{}",
@@ -75,22 +72,11 @@ fn bootstrap_tauri_v2_ios() {
     };
 
     let next_config_content = r#"
-const isProd = process.env.NODE_ENV === 'production';
+import type { NextConfig } from "next";
 
-const internalHost = process.env.TAURI_DEV_HOST || 'http://127.0.0.1';
-
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  // Ensure Next.js uses SSG instead of SSR
-  // https://nextjs.org/docs/pages/building-your-application/deploying/static-exports
+const nextConfig: NextConfig = {
+  /* config options here */
   output: 'export',
-  // Note: This feature is required to use the Next.js Image component in SSG mode.
-  // See https://nextjs.org/docs/messages/export-image-api for different workarounds.
-  images: {
-    unoptimized: true,
-  },
-  // Configure assetPrefix or else the server won't properly resolve your assets.
-  assetPrefix: isProd ? undefined : `http://${internalHost}:3000`,
 };
 
 export default nextConfig;
@@ -98,11 +84,7 @@ export default nextConfig;
     fs::write(next_config_path, next_config_content).expect("Failed to write next.config.ts");
     println!(
         "{}",
-        format!(
-            "Debug: Updated {} with output: 'export'",
-            next_config_path
-        )
-        .yellow()
+        format!("Debug: Updated {} with output: 'export'", next_config_path).yellow()
     );
 
     // Step 2: Install Tauri CLI v2
@@ -111,7 +93,48 @@ export default nextConfig;
         &["install", "tauri-cli", "--version", "^2.0.0-beta"],
     );
 
-    // Step 3: Initialize Tauri v2 (only if src-tauri doesn't exist)
+    // Step 3: Install Tauri JS dependencies and update package.json
+    run_command("npm", &["install", "@tauri-apps/api", "--save"]);
+    run_command("npm", &["install", "@tauri-apps/cli", "--save-dev"]);
+
+    // Modify package.json to add "tauri": "tauri" to scripts
+    let package_json_path = "package.json";
+    let package_json_content =
+        fs::read_to_string(package_json_path).expect("Failed to read package.json");
+    let mut package_json: serde_json::Value =
+        serde_json::from_str(&package_json_content).expect("Failed to parse package.json");
+
+    if let Some(scripts) = package_json
+        .get_mut("scripts")
+        .and_then(|s| s.as_object_mut())
+    {
+        scripts.insert(
+            "tauri".to_string(),
+            serde_json::Value::String("tauri".to_string()),
+        );
+    } else {
+        let mut scripts = serde_json::Map::new();
+        scripts.insert(
+            "tauri".to_string(),
+            serde_json::Value::String("tauri".to_string()),
+        );
+        package_json
+            .as_object_mut()
+            .unwrap()
+            .insert("scripts".to_string(), serde_json::Value::Object(scripts));
+    }
+
+    fs::write(
+        package_json_path,
+        serde_json::to_string_pretty(&package_json).expect("Failed to serialize package.json"),
+    )
+    .expect("Failed to write updated package.json");
+    println!(
+        "{}",
+        "Debug: Added 'tauri': 'tauri' to package.json scripts".yellow()
+    );
+
+    // Step 4: Initialize Tauri v2
     if !Path::new("src-tauri").exists() {
         run_command(
             "cargo",
@@ -134,13 +157,9 @@ export default nextConfig;
         );
     }
 
-    // Step 4: Install Tauri JS dependencies
-    run_command("npm", &["install", "@tauri-apps/api", "--save"]);
-    run_command("npm", &["install", "@tauri-apps/cli", "--save-dev"]);
-
-    // Step 5: Add iOS support (only if not already initialized)
-    if !Path::new("src-tauri/ios").exists() {
-        run_command("cargo", &["tauri", "ios", "init", "--ci"]);
+    // Step 5: Add iOS support
+    if !Path::new("src-tauri/gen/apple").exists() {
+        run_command("cargo", &["tauri", "ios", "init"]);
     } else {
         println!(
             "{}",
@@ -151,32 +170,51 @@ export default nextConfig;
     // Step 6: Configure tauri.conf.json
     let tauri_conf = r#"
 {
-  "$schema": "https://schema.tauri.app/config/2.0.0-rc.1",
+  "$schema": "https://schema.tauri.app/config/2.0.0-rc",
   "productName": "shipnext",
   "version": "0.1.0",
   "identifier": "com.shipnext.dev",
   "build": {
     "frontendDist": "../out",
-    "devUrl": "http://127.0.0.1:3000",
+    "devUrl": "http://localhost:3000",
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "shipnext",
+        "width": 800,
+        "height": 600,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
   },
   "bundle": {
     "iOS": {
       "developmentTeam": "NXR8WH6TN8",
       "minimumSystemVersion": "13.0"
     },
-    "category": "Entertainment",
     "active": true,
     "targets": "all",
-    "createUpdaterArtifacts": true
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
   }
 }
 "#;
     fs::write("src-tauri/tauri.conf.json", tauri_conf).expect("Failed to write tauri.conf.json");
     println!("{}", "Debug: Configured tauri.conf.json".yellow());
 
-    // Step 7: Reinstall npm dependencies before build
+    // Step 7: Reinstall npm dependencies
     run_command("npm", &["install"]);
 
     // Step 8: Build for iOS
@@ -186,29 +224,14 @@ export default nextConfig;
     println!("To run:");
     println!("  npm run tauri dev  # For development");
     println!("  Check src-tauri/gen/apple/build/arm64/[your-app-name].ipa for the .ipa");
-
-    // Step 9: Start iOS Simulator with a default device (iPhone 14 Pro)
-    // println!("{}", "Let's start the simulation for you as well".green());
-
-    // Boot the default device (iPhone 14 Pro) - UDID may vary, using name for simplicity
-    // run_command("xcrun", &["simctl", "boot", "iPhone 15"]);
-    // run_command("cargo", &["tauri", "ios", "dev","iPhone 15"]);
-
-    // println!(
-    //     "{}",
-    //     "Tauri v2 with iOS bootstrapped and Simulator started successfully!".green()
-    // );
-    // println!("Check the Simulator for your app running on iPhone 15!");
 }
 
 fn simulator_ios() {
     println!("{}", "Let's start the simulation for you as well".green());
-    // Boot the default device (iPhone 14 Pro) - UDID may vary, using name for simplicity
-    // run_command("xcrun", &["simctl", "boot", "iPhone 15"]);
-    run_command("cargo", &["tauri", "ios", "dev", "iPhone 15 Pro Max"]);
+    run_command("cargo", &["tauri", "ios", "dev", "iPhone 15 Pro"]);
     println!(
         "{}",
         "Tauri v2 with iOS bootstrapped and Simulator started successfully!".green()
     );
-    println!("Check the Simulator for your app running on iPhone 15 Pro Max!");
+    println!("Check the Simulator for your app running on iPhone 15 Pro");
 }
