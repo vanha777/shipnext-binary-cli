@@ -77,7 +77,7 @@ fn bootstrap_tauri_v2_ios() {
     let next_config_content = r#"
 const isProd = process.env.NODE_ENV === 'production';
 
-const internalHost = process.env.TAURI_DEV_HOST || 'localhost';
+const internalHost = process.env.TAURI_DEV_HOST || 'http://127.0.0.1';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -157,7 +157,7 @@ export default nextConfig;
   "identifier": "com.shipnext.dev",
   "build": {
     "frontendDist": "../out",
-    "devUrl": "http://localhost:3000",
+    "devUrl": "http://127.0.0.1:3000",
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build"
   },
