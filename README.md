@@ -53,4 +53,44 @@ A utility tool for managing your NextJS projects.
    ./shipnext bootstrap
    ```
 
+## iOS Development Prerequisites
+
+If you want to develop or run a Tauri iOS app on macOS, you'll need:
+
+1. **macOS:** You need macOS 12 (Monterey) or later.
+
+2. **Xcode:** Install the latest version of Xcode from the Mac App Store or Apple's developer website.
+   ```bash
+   xcode-select --install
+   ```
+
+3. **iOS Simulator:** Included with Xcode, needed for testing without a physical device.
+
+4. **Apple Developer Account:** Required for deploying to physical devices and App Store submission.
+
+5. **Rust Setup:**
+   ```bash
+   # Install Rust
+   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+   
+   # Add iOS targets
+   rustup target add aarch64-apple-ios x86_64-apple-ios aarch64-apple-ios-sim
+   ```
+
+6. **Node.js and npm/yarn:** Required for the web portion of your Tauri app.
+
+7. **Tauri CLI:**
+   ```bash
+   cargo install tauri-cli
+   ```
+
+8. **iOS-specific dependencies:**
+   ```bash
+   # Install CocoaPods
+   sudo gem install cocoapods
+   
+   # Additional dependencies
+   brew install libiconv
+   ```
+
 ## Usage
