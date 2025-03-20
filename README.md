@@ -50,6 +50,7 @@ A utility tool for managing your NextJS projects.
    ```bash
    ./shipnext status
    ./shipnext modify
+   ./shipnext bootstrap
    ```
 
 ## Usage

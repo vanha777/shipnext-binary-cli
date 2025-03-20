@@ -1,0 +1,15 @@
+
+{
+  "build": {
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../out"
+  },
+  "tauri": {
+    "bundle": {
+      "identifier": "com.example.nexttauri",
+      "iOS": {
+        "developmentTeam": "56D6LN4B5K"
+      }
+    }
+  }
+}
