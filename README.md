@@ -4,6 +4,21 @@ A utility tool for managing your NextJS projects.
 
 ## Installation
 
+### Pre-built Binary
+
+You can download the pre-built binary directly:
+
+```bash
+# Download the binary
+curl -L https://github.com/vanha777/shipnext-binary-cli/releases/download/alpha/shipnext -o shipnext
+
+# Make it executable
+chmod +x shipnext
+
+# Move to a directory in your PATH (optional)
+sudo mv shipnext /usr/local/bin/
+```
+
 ### Building from Source
 
 1. Clone this repository:
