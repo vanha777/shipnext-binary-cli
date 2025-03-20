@@ -151,7 +151,7 @@ export default nextConfig;
   "identifier": "com.dids.dev",
   "build": {
     "frontendDist": "../.next",
-    "devUrl": "http://localhost:3000/patrick.ha",
+    "devUrl": "http://localhost:3000",
     "beforeDevCommand": "bun dev",
     "beforeBuildCommand": "npm run build"
   },
