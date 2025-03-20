@@ -23,7 +23,7 @@ sudo mv shipnext /usr/local/bin/
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/yourusername/shipnext.git
+   git clone https://github.com/vanha777/shipnext.git
    cd shipnext
    ```
 
