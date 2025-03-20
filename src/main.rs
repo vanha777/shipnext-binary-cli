@@ -2,7 +2,7 @@ use std::process::Command;
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::Path;
-use colored::Colorize; // Import the colored crate
+use colored::Colorize;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -99,7 +99,7 @@ export default nextConfig;
     run_command("cargo", &["install", "tauri-cli", "--version", "^2.0.0-beta"]);
 
     // Step 3: Initialize Tauri v2
-    run_command("cargo", &["tauri", "init", "--ci", "--app-name", "next-tauri-app", "--frontend-dist", "../out", "--dev-url", "http://localhost:3000"]);
+    run_command("cargo", &["tauri", "init", "--ci", "--app-name", "biztouch", "--frontend-dist", "../.next", "--dev-url", "http://localhost:3000/patrick.ha"]);
 
     // Step 4: Install Tauri JS dependencies
     run_command("npm", &["install", "@tauri-apps/api", "--save"]);
@@ -109,8 +109,8 @@ export default nextConfig;
     let package_json_content = r#"
 {
   "scripts": {
-    "dev": "next dev",
-    "build": "next build && next export",
+    "dev": "bun dev",
+    "build": "npm run build",
     "tauri": "tauri"
   }
 }
@@ -121,20 +121,28 @@ export default nextConfig;
     // Step 6: Add iOS support
     run_command("cargo", &["tauri", "ios", "init", "--ci"]);
 
-    // Step 7: Configure tauri.conf.json
+    // Step 7: Configure tauri.conf.json with correct structure
     let tauri_conf = r#"
 {
+  "$schema": "https://schema.tauri.app/config/2.0.0-rc",
+  "productName": "biztouch",
+  "version": "0.1.0",
+  "identifier": "com.dids.dev",
   "build": {
-    "beforeBuildCommand": "npm run build",
-    "frontendDist": "../out"
+    "frontendDist": "../.next",
+    "devUrl": "http://localhost:3000/patrick.ha",
+    "beforeDevCommand": "bun dev",
+    "beforeBuildCommand": "npm run build"
   },
-  "tauri": {
-    "bundle": {
-      "identifier": "com.example.nexttauri",
-      "iOS": {
-        "developmentTeam": "56D6LN4B5K"
-      }
-    }
+  "bundle": {
+    "iOS": {
+      "developmentTeam": "NXR8WH6TN8",
+      "minimumSystemVersion": "13.0"
+    },
+    "category": "Entertainment",
+    "active": true,
+    "targets": "all",
+    "createUpdaterArtifacts": true
   }
 }
 "#;
@@ -142,7 +150,7 @@ export default nextConfig;
     println!("{}", "Debug: Configured tauri.conf.json".yellow());
 
     // Step 8: Build for iOS
-    run_command("cargo", &["tauri", "ios", "build", "--release"]);
+    run_command("cargo", &["tauri", "ios", "build"]);
 
     println!("{}", "Tauri v2 with iOS bootstrapped successfully!".green());
     println!("To run:");
