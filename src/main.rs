@@ -75,16 +75,22 @@ fn bootstrap_tauri_v2_ios() {
     };
 
     let next_config_content = r#"
-import type { NextConfig } from "next";
+const isProd = process.env.NODE_ENV === 'production';
 
-const nextConfig: NextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
+const internalHost = process.env.TAURI_DEV_HOST || 'localhost';
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // Ensure Next.js uses SSG instead of SSR
+  // https://nextjs.org/docs/pages/building-your-application/deploying/static-exports
+  output: 'export',
+  // Note: This feature is required to use the Next.js Image component in SSG mode.
+  // See https://nextjs.org/docs/messages/export-image-api for different workarounds.
+  images: {
+    unoptimized: true,
   },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  output: "standalone",
+  // Configure assetPrefix or else the server won't properly resolve your assets.
+  assetPrefix: isProd ? undefined : `http://${internalHost}:3000`,
 };
 
 export default nextConfig;
@@ -93,7 +99,7 @@ export default nextConfig;
     println!(
         "{}",
         format!(
-            "Debug: Updated {} with output: 'standalone'",
+            "Debug: Updated {} with output: 'export'",
             next_config_path
         )
         .yellow()
@@ -114,9 +120,9 @@ export default nextConfig;
                 "init",
                 "--ci",
                 "--app-name",
-                "biztouch",
+                "shipnext",
                 "--frontend-dist",
-                "../.next",
+                "../out",
                 "--dev-url",
                 "http://localhost:3000",
             ],
@@ -145,14 +151,14 @@ export default nextConfig;
     // Step 6: Configure tauri.conf.json
     let tauri_conf = r#"
 {
-  "$schema": "https://schema.tauri.app/config/2.0.0-rc",
-  "productName": "biztouch",
+  "$schema": "https://schema.tauri.app/config/2.0.0-rc.1",
+  "productName": "shipnext",
   "version": "0.1.0",
-  "identifier": "com.dids.dev",
+  "identifier": "com.shipnext.dev",
   "build": {
-    "frontendDist": "../.next",
+    "frontendDist": "../out",
     "devUrl": "http://localhost:3000",
-    "beforeDevCommand": "bun dev",
+    "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build"
   },
   "bundle": {
@@ -198,11 +204,11 @@ export default nextConfig;
 fn simulator_ios() {
     println!("{}", "Let's start the simulation for you as well".green());
     // Boot the default device (iPhone 14 Pro) - UDID may vary, using name for simplicity
-    run_command("xcrun", &["simctl", "boot", "iPhone 15"]);
-    run_command("cargo", &["tauri", "ios", "dev", "iPhone 15"]);
+    // run_command("xcrun", &["simctl", "boot", "iPhone 15"]);
+    run_command("cargo", &["tauri", "ios", "dev", "iPhone 15 Pro Max"]);
     println!(
         "{}",
         "Tauri v2 with iOS bootstrapped and Simulator started successfully!".green()
     );
-    println!("Check the Simulator for your app running on iPhone 15!");
+    println!("Check the Simulator for your app running on iPhone 15 Pro Max!");
 }
